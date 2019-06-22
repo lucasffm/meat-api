@@ -2,6 +2,7 @@ import * as restify from 'restify';
 import * as mongoose from 'mongoose';
 import { env } from '../common/environment';
 import { Router } from '../common/router';
+import { mergePatchBodyParser } from './merge-patch.parser';
 
 const { PORT } = env.server;
 
@@ -24,6 +25,7 @@ export class Server {
 
         this.application.use(restify.plugins.queryParser());
         this.application.use(restify.plugins.bodyParser());
+        this.application.use(mergePatchBodyParser);
 
         // Routes
         for (const route of routes) {
@@ -41,6 +43,7 @@ export class Server {
 
   async bootstrap(routes: Router[] = []): Promise<Server> {
     await this.initDB();
-    return this.initRoutes(routes).then(() => this);
+    await this.initRoutes(routes);
+    return this;
   }
 }

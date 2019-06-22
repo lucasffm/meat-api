@@ -49,6 +49,35 @@ class UsersRouter extends Router {
       res.json(200, updated);
       return next();
     });
+
+    application.patch('/users/:id', async (req, res, next) => {
+      const opt = { new: true };
+      const user = await User.findByIdAndUpdate(
+        req.params.id,
+        {
+          ...req.body
+        },
+        opt
+      );
+      if (user) {
+        res.json(200, user);
+        return next();
+      } else {
+        res.send(404);
+        return next();
+      }
+    });
+
+    application.del('/users/:id', async (req, res, next) => {
+      const user = await User.findByIdAndDelete(req.params.id);
+      if (user) {
+        res.send(204);
+        return next();
+      } else {
+        res.send(404);
+        return next();
+      }
+    });
   }
 }
 

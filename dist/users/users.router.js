@@ -52,6 +52,29 @@ class UsersRouter extends router_1.Router {
             res.json(200, updated);
             return next();
         }));
+        application.patch('/users/:id', (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            const opt = { new: true };
+            const user = yield users_model_1.User.findByIdAndUpdate(req.params.id, Object.assign({}, req.body), opt);
+            if (user) {
+                res.json(200, user);
+                return next();
+            }
+            else {
+                res.send(404);
+                return next();
+            }
+        }));
+        application.del('/users/:id', (req, res, next) => __awaiter(this, void 0, void 0, function* () {
+            const user = yield users_model_1.User.findByIdAndDelete(req.params.id);
+            if (user) {
+                res.send(204);
+                return next();
+            }
+            else {
+                res.send(404);
+                return next();
+            }
+        }));
     }
 }
 exports.usersRouter = new UsersRouter();

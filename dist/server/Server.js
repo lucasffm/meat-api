@@ -11,6 +11,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const restify = require("restify");
 const mongoose = require("mongoose");
 const environment_1 = require("../common/environment");
+const merge_patch_parser_1 = require("./merge-patch.parser");
 const { PORT } = environment_1.env.server;
 class Server {
     initDB() {
@@ -27,6 +28,7 @@ class Server {
                 });
                 this.application.use(restify.plugins.queryParser());
                 this.application.use(restify.plugins.bodyParser());
+                this.application.use(merge_patch_parser_1.mergePatchBodyParser);
                 // Routes
                 for (const route of routes) {
                     route.applyRoutes(this.application);
@@ -43,7 +45,8 @@ class Server {
     bootstrap(routes = []) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.initDB();
-            return this.initRoutes(routes).then(() => this);
+            yield this.initRoutes(routes);
+            return this;
         });
     }
 }
