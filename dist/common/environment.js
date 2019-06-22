@@ -6,5 +6,6 @@ exports.env = {
     },
     DB: {
         url: process.env.DB_URL || 'mongodb://172.17.0.2/meat-api'
-    }
+    },
+    security: { saltRounds: process.env.saltRounds || 10 }
 };
