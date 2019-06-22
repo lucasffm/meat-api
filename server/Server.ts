@@ -3,6 +3,7 @@ import * as mongoose from 'mongoose';
 import { env } from '../common/environment';
 import { Router } from '../common/router';
 import { mergePatchBodyParser } from './merge-patch.parser';
+import { handleError } from './error-handler';
 
 const { PORT } = env.server;
 
@@ -31,6 +32,8 @@ export class Server {
         for (const route of routes) {
           route.applyRoutes(this.application);
         }
+
+        this.application.on('restifyError', handleError);
 
         this.application.listen(PORT, () => {
           resolve(this.application);

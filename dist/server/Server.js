@@ -12,6 +12,7 @@ const restify = require("restify");
 const mongoose = require("mongoose");
 const environment_1 = require("../common/environment");
 const merge_patch_parser_1 = require("./merge-patch.parser");
+const error_handler_1 = require("./error-handler");
 const { PORT } = environment_1.env.server;
 class Server {
     initDB() {
@@ -33,6 +34,7 @@ class Server {
                 for (const route of routes) {
                     route.applyRoutes(this.application);
                 }
+                this.application.on('restifyError', error_handler_1.handleError);
                 this.application.listen(PORT, () => {
                     resolve(this.application);
                 });

@@ -1,80 +1,69 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const router_1 = require("../common/router");
-const users_model_1 = require("../users/users.model");
+const restify_errors_1 = require("restify-errors");
+const users_model_1 = require("./users.model");
 class UsersRouter extends router_1.Router {
+    constructor() {
+        super();
+        this.on('beforeRender', document => {
+            document.password = undefined;
+            //delete document.password
+        });
+    }
     applyRoutes(application) {
-        // Application é o restify
-        application.get('/users', (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            const user = yield users_model_1.User.find();
-            res.json(200, user);
-            return next();
-        }));
-        application.get('/users/:id', (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            const user = yield users_model_1.User.findById(req.params.id);
-            if (user) {
-                res.json(200, user);
+        application.get('/users', (req, resp, next) => {
+            users_model_1.User.find()
+                .then(this.render(resp, next))
+                .catch(next);
+        });
+        application.get('/users/:id', (req, resp, next) => {
+            users_model_1.User.findById(req.params.id)
+                .then(this.render(resp, next))
+                .catch(next);
+        });
+        application.post('/users', (req, resp, next) => {
+            let user = new users_model_1.User(req.body);
+            user
+                .save()
+                .then(this.render(resp, next))
+                .catch(next);
+        });
+        application.put('/users/:id', (req, resp, next) => {
+            const options = { overwrite: true };
+            users_model_1.User.update({ _id: req.params.id }, req.body, options)
+                .exec()
+                .then(result => {
+                if (result.n) {
+                    return users_model_1.User.findById(req.params.id);
+                }
+                else {
+                    throw new restify_errors_1.NotFoundError('Documento não encontrado');
+                }
+            })
+                .then(this.render(resp, next))
+                .catch(next);
+        });
+        application.patch('/users/:id', (req, resp, next) => {
+            const options = { new: true };
+            users_model_1.User.findByIdAndUpdate(req.params.id, req.body, options)
+                .then(this.render(resp, next))
+                .catch(next);
+        });
+        application.del('/users/:id', (req, resp, next) => {
+            users_model_1.User.remove({ _id: req.params.id })
+                .exec()
+                .then((cmdResult) => {
+                if (cmdResult.result.n) {
+                    resp.send(204);
+                }
+                else {
+                    throw new restify_errors_1.NotFoundError('Documento não encontrado');
+                }
                 return next();
-            }
-            else {
-                res.json(404);
-                return next();
-            }
-        }));
-        application.post('/users', (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            const userExist = yield users_model_1.User.findOne({ email: req.body.email });
-            if (userExist) {
-                res.json(409, { message: 'Email já está em uso' });
-                return next();
-            }
-            const Model = new users_model_1.User(req.body);
-            const user = yield Model.save();
-            user.password = undefined;
-            res.json(201, user);
-            return next();
-        }));
-        application.put('/users/:id', (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            const user = yield users_model_1.User.findOne({ _id: req.params.id });
-            if (!user) {
-                res.json(404, { message: 'Usuário não encontrado' });
-                return next();
-            }
-            let updated = yield users_model_1.User.updateOne({ _id: req.params.id }, req.body).exec();
-            updated = yield users_model_1.User.findById(req.params.id);
-            res.json(200, updated);
-            return next();
-        }));
-        application.patch('/users/:id', (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            const opt = { new: true };
-            const user = yield users_model_1.User.findByIdAndUpdate(req.params.id, Object.assign({}, req.body), opt);
-            if (user) {
-                res.json(200, user);
-                return next();
-            }
-            else {
-                res.send(404);
-                return next();
-            }
-        }));
-        application.del('/users/:id', (req, res, next) => __awaiter(this, void 0, void 0, function* () {
-            const user = yield users_model_1.User.findByIdAndDelete(req.params.id);
-            if (user) {
-                res.send(204);
-                return next();
-            }
-            else {
-                res.send(404);
-                return next();
-            }
-        }));
+            })
+                .catch(next);
+        });
     }
 }
 exports.usersRouter = new UsersRouter();

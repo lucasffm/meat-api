@@ -1,82 +1,72 @@
-import * as restify from 'restify';
 import { Router } from '../common/router';
-import { User } from '../users/users.model';
+import * as restify from 'restify';
+import { NotFoundError } from 'restify-errors';
+import { User } from './users.model';
 
 class UsersRouter extends Router {
+  constructor() {
+    super();
+    this.on('beforeRender', document => {
+      document.password = undefined;
+      //delete document.password
+    });
+  }
+
   applyRoutes(application: restify.Server) {
-    // Application é o restify
-    application.get('/users', async (req, res, next) => {
-      const user = await User.find();
-      res.json(200, user);
-      return next();
+    application.get('/users', (req, resp, next) => {
+      User.find()
+        .then(this.render(resp, next))
+        .catch(next);
     });
 
-    application.get('/users/:id', async (req, res, next) => {
-      const user = await User.findById(req.params.id);
-      if (user) {
-        res.json(200, user);
-        return next();
-      } else {
-        res.json(404);
-        return next();
-      }
+    application.get('/users/:id', (req, resp, next) => {
+      User.findById(req.params.id)
+        .then(this.render(resp, next))
+        .catch(next);
     });
 
-    application.post('/users', async (req, res, next) => {
-      const userExist = await User.findOne({ email: req.body.email });
-      if (userExist) {
-        res.json(409, { message: 'Email já está em uso' });
-        return next();
-      }
-      const Model = new User(req.body);
-      const user = await Model.save();
-      user.password = undefined;
-      res.json(201, user);
-      return next();
+    application.post('/users', (req, resp, next) => {
+      let user = new User(req.body);
+      user
+        .save()
+        .then(this.render(resp, next))
+        .catch(next);
     });
 
-    application.put('/users/:id', async (req, res, next) => {
-      const user = await User.findOne({ _id: req.params.id });
-      if (!user) {
-        res.json(404, { message: 'Usuário não encontrado' });
-        return next();
-      }
-      let updated = await User.updateOne(
-        { _id: req.params.id },
-        req.body
-      ).exec();
-      updated = await User.findById(req.params.id);
-      res.json(200, updated);
-      return next();
+    application.put('/users/:id', (req, resp, next) => {
+      const options = { overwrite: true };
+      User.update({ _id: req.params.id }, req.body, options)
+        .exec()
+        .then(result => {
+          if (result.n) {
+            return User.findById(req.params.id);
+          } else {
+            throw new NotFoundError('Documento não encontrado');
+          }
+        })
+        .then(this.render(resp, next))
+        .catch(next);
     });
 
-    application.patch('/users/:id', async (req, res, next) => {
-      const opt = { new: true };
-      const user = await User.findByIdAndUpdate(
-        req.params.id,
-        {
-          ...req.body
-        },
-        opt
-      );
-      if (user) {
-        res.json(200, user);
-        return next();
-      } else {
-        res.send(404);
-        return next();
-      }
+    application.patch('/users/:id', (req, resp, next) => {
+      const options = { new: true };
+      User.findByIdAndUpdate(req.params.id, req.body, options)
+        .then(this.render(resp, next))
+        .catch(next);
     });
 
-    application.del('/users/:id', async (req, res, next) => {
-      const user = await User.findByIdAndDelete(req.params.id);
-      if (user) {
-        res.send(204);
-        return next();
-      } else {
-        res.send(404);
-        return next();
-      }
+    application.del('/users/:id', (req, resp, next) => {
+      User.remove({ _id: req.params.id })
+        .exec()
+        .then((cmdResult: any) => {
+          if (cmdResult.result.n) {
+            resp.send(204);
+          } else {
+            throw new NotFoundError('Documento não encontrado');
+          }
+          return next();
+        })
+        .catch(next);
     });
   }
 }
